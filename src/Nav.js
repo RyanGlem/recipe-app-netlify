@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Navbar,
   Nav,
@@ -8,26 +8,40 @@ import {
   Button,
   Modal,
 } from "react-bootstrap";
-import { Switch, Route } from "react-router-dom";
+import { Switch, Route} from "react-router-dom";
 import { AddRecipeView } from "./views/AddRecipeView";
 import { FavoritesView } from "./views/FavoritesView";
 import { ProfileView } from "./views/ProfileView";
 import { RecipesView } from './views/RecipesView';
 import { HomeView } from "./views/HomeView";
-import { Link } from "react-router-dom";
+import { Link, Redirect } from "react-router-dom";
 import Login from './components/LoginPage'
 import SignUp from './components/SignUpPage'
 import "bootstrap/dist/css/bootstrap.min.css";
+import { useSelector, useDispatch } from 'react-redux'
+import { logoutUser } from './redux/reducers'
+import { sessionCheck } from './redux/reducers'
 
+const requireLogin = (loggedIn, redirect="/home") => Comp => props => loggedIn ? <Comp {...props} /> : <Redirect to={redirect} />
+ 
 function Navigation() {
   const [show, setShow] = useState(false);
-  const [showSignUp, setShowSignUp] = useState (false)
+  const [showSignUp, setShowSignUp] = useState(false)
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
   const handleCloseSignUp = () => setShowSignUp(false);
   const handleShowSignUp = () => setShowSignUp(true);
+
+  const { isLoggedIn, username } = useSelector(({ isLoggedIn, user: { username }}) => ({ isLoggedIn, username }))
+  const dispatch = useDispatch()
+
+  useEffect(() => {
+    dispatch(sessionCheck())
+  }, [])
+
+  const authorize = requireLogin(isLoggedIn)
 
   return (
     <div>
@@ -37,36 +51,53 @@ function Navigation() {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="mr-auto">
             <Nav.Link href="/home">Home</Nav.Link>
-            <Nav.Link href="/profile">Profile</Nav.Link>
-            <NavDropdown title="Dropdown" id="basic-nav-dropdown">
-              <NavDropdown.Item href="/recipes">View Recipes</NavDropdown.Item>
-              <NavDropdown.Item href="/addrecipe">
-                Create Recipes
-              </NavDropdown.Item>
-              <NavDropdown.Item href="/favorites">Favorites</NavDropdown.Item>
-              <NavDropdown.Divider />
-              <NavDropdown.Item href="#action/3.4">Followers</NavDropdown.Item>
-            </NavDropdown>
+          
+          {
+            isLoggedIn && (
+              <NavDropdown title={`Welcome Back, ${username}`} id="basic-nav-dropdown">
+                <NavDropdown.Item><Link to="/recipes">View Recipes</Link></NavDropdown.Item>
+                <NavDropdown.Item>
+                  <Link to="/addrecipe">Create Recipes</Link>
+                </NavDropdown.Item>
+                <NavDropdown.Item><Link to="/favorites">Favorites</Link></NavDropdown.Item>
+                <NavDropdown.Divider />
+                <NavDropdown.Item><Link to="/profile">Profile</Link></NavDropdown.Item>
+                <NavDropdown.Item>Followers</NavDropdown.Item>
+              </NavDropdown>
+            )
+          }
+            
           </Nav>
           <Nav className="justify-content-end">
-            <Nav.Item>
-              <Button onClick={handleShow}> Login </Button> {' '}
-              <Button onClick={handleShowSignUp}> Sign Up </Button>
-              <SignUp handeClose={handleCloseSignUp} show={showSignUp}/>
-              <Login handleClose={handleClose} show={show}/>
-            </Nav.Item>
+            {
+              !isLoggedIn ? (
+                <Nav.Item>
+                  <Button onClick={handleShow}> Login </Button> {' '}
+                  <Button onClick={handleShowSignUp}> Sign Up </Button>
+                  <SignUp handleClose={handleCloseSignUp} show={showSignUp}/>
+                  <Login handleClose={handleClose} show={show}/>
+                </Nav.Item>
+              ) : (
+                <Nav.Item>
+                  <Button onClick={() => dispatch(logoutUser())}> Logout </Button>
+                </Nav.Item>
+              )
+            }
+            
           </Nav>
         </Navbar.Collapse>
       </Navbar>
       <div></div>
       <div>
+        
         <Switch>
-          <Route exact path="/profile" component={ProfileView} />
-          <Route exact path="/recipes" component={RecipesView} />
-          <Route exact path="/favorites" component={FavoritesView} />
-          <Route exact path="/addrecipe" component={AddRecipeView} />
+          <Route exact path="/profile" component={authorize(ProfileView)} />
+          <Route exact path="/recipes" component={RecipesView} /> {/* TODO: render Recipe from redux store based on ID */}
+          <Route exact path="/favorites" component={authorize(FavoritesView)} />
+          <Route exact path="/addrecipe" component={authorize(AddRecipeView)} />
           <Route exact path="/home" component={HomeView} />
         </Switch>
+       
       </div>
     </div>
   );

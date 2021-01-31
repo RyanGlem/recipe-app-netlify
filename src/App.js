@@ -1,4 +1,4 @@
-import HomeDisplay, {  } from './components/RecipeHome';
+import {HomeView} from './components/RecipeHome'
 import Nav from './Nav'
 import './App.css';
 
@@ -6,7 +6,6 @@ function App() {
   return (
     <div className="App">
       <Nav/>
-      <HomeDisplay/>
     </div>
   );
 }

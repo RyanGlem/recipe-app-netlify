@@ -1,69 +1,92 @@
-import React, {Component, useState} from "react"
+import React, {Component, useState, useEffect} from "react"
 import {Modal, Form, Button} from 'react-bootstrap'
 import {createUser} from "../redux/reducers"
-import {connect} from 'react-redux'
+import {useDispatch} from 'react-redux'
+import { validate } from 'validate.js'
 
-class SignUp  extends Component {
+const SignUp = ({ show, handleClose }) => {
+  const [validated, setValidated] = useState(false)
+  const [firstName, setFName] = useState('')
+  const [lastName, setLName] = useState('')
+  const [username, setUName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordConfirm, setConfirmPass] = useState('')
+  const[equalPasswords, setPassEq] = useState(true)
+  const dispatch = useDispatch()
 
-  constructor (props) {
-    super(props)
-    this.state = {
-      show: false,
-      handleClose: true
+
+  const checkPasswords = () => setPassEq(!(validate({
+      passwordConfirm, password
+    },
+    {
+    passwordConfirm: {
+      equality: "password"
     }
+  }) ?? false))
+
+  const handleSubmit = event => {
+    const form = event.currentTarget
+    event.preventDefault()
+    event.stopPropagation()
+    if (!form.checkValidity() || !equalPasswords) {
+      
+      console.log('No valid')
+    } else {
+      console.log('Valid')
+      dispatch(createUser({ firstName, lastName, username, email, password }))
+    }
+
+    setValidated(true)
   }
 
-    componentDidMount () {
-        this.props.createUser()
-    }
+  useEffect(() => {checkPasswords()}, [password, passwordConfirm])
 
-    handleShow = () => {
+  useEffect(() => {
+    console.log('EQ passwords: ', equalPasswords)
+  }, [equalPasswords])
 
-    }
-
-    render () {
-       
     return (  
-        <Modal show={false} onHide={this.handleClose}>
+        <Modal show={show} onHide={handleClose}>
           <Modal.Header closeButton>
             <Modal.Title>Sign Up</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <Form onSubmit={this.props.createUser()}>
+            <Form noValidate validated={validated} onSubmit={handleSubmit}>
             <Form.Group controlId="formBasicText1">
                 <Form.Label> First Name</Form.Label>
-                <Form.Control type="text" placeholder="First Name" required/>
+                <Form.Control type="text" placeholder="First Name" value={firstName} onChange={e => setFName(e.target.value)} required/>
                 <Form.Control.Feedback type="invalid" >First Name Required</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group controlId="formBasicText2">
                 <Form.Label> Last Name</Form.Label>
-                <Form.Control type="text" placeholder="Last Name" required/>
+                <Form.Control type="text" placeholder="Last Name" value={lastName} onChange={e => setLName(e.target.value)} required/>
                 <Form.Control.Feedback type="invalid" >Last Name Required</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group controlId="formBasicText3">
                 <Form.Label>Username</Form.Label>
-                <Form.Control type="text" placeholder="Username" required/>
+                <Form.Control type="text" placeholder="Username" value={username} onChange={e => setUName(e.target.value)} required/>
                 <Form.Control.Feedback type="invalid" >Username Required</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group controlId="formBasicEmail">
                 <Form.Label> Email </Form.Label>
-                <Form.Control type="email" placeholder="Email" required/>
-                <Form.Control.Feedback type="email" >Email Required</Form.Control.Feedback>
+                <Form.Control type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required/>
+                <Form.Control.Feedback type="invalid" >Email Required</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group controlId="formBasicPassword">
-                <Form.Label> New Password</Form.Label>
-                <Form.Control type="password" placeholder="New Password" required/>
+                <Form.Label> Password</Form.Label>
+                <Form.Control type="password" placeholder="New Password" value={password} onChange={e => {setPassword(e.target.value)}} required/>
                 <Form.Control.Feedback type="invalid" >Password Required</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group controlId="formBasicPassword">
-                <Form.Label> Enter Password Again </Form.Label>
-                <Form.Control type="password" placeholder="Password" required/>
-                <Form.Control.Feedback type="invalid" >Password Required</Form.Control.Feedback>
+                <Form.Label> Confirm Password </Form.Label>
+                <Form.Control isInvalid={!equalPasswords} type="password" placeholder="Password" value={passwordConfirm} onChange={e => {setConfirmPass(e.target.value)}} required/>
+                <Form.Control.Feedback type="invalid" >{!equalPasswords ? 'Passwords Must Match' : 'Password Required'}</Form.Control.Feedback>
               </Form.Group>
 
               <Button variant="primary" type="submit">
@@ -74,18 +97,6 @@ class SignUp  extends Component {
         </Modal>
         )
     }
-}
-const mapState = (state) => {
-    return {
-        newUser: state.newUser,
-    }
-}
 
-// Map dispatch to props
-const mapDispatch = (dispatch) => {
-    return {
-        createUser: (body) => dispatch(createUser(body)),
-    }
-}
 
-export default connect(mapState, mapDispatch)(SignUp);
+export default SignUp;
